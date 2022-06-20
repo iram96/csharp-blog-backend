@@ -38,6 +38,7 @@ var app = builder.Build();
 app.UseCors();
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseAuthorization();
 

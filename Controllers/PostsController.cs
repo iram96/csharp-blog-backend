@@ -17,14 +17,40 @@ namespace csharp_blog_backend.Controllers
 
         // GET: api/Posts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Post>>> GetListaPost()
+        public async Task<ActionResult<IEnumerable<Post>>> GetListaPost(string? stringa)
         {
             if (_context.ListaPost == null)
             {
                 return NotFound();
             }
-            return await _context.ListaPost.ToListAsync();
+            if (stringa != null)
+            {
+
+                return await _context.ListaPost.Where(m => m.Title.Contains(stringa) || m.Description.Contains(stringa)).ToListAsync();
+            }
+            else
+            {
+                return await _context.ListaPost.ToListAsync();
+            }
         }
+
+        //[HttpGet]
+        //public async Task<ActionResult<IEnumerable<Post>>> GetListaPost(string stringa)
+        //{
+        //    if (_context.ListaPost == null)
+        //    {
+        //        return NotFound();
+        //    }
+        //    if (stringa != null)
+        //    {
+
+        //        return await _context.ListaPost.Where(m => m.Title.Contains(stringa) || m.Description.Contains(stringa)).ToListAsync();
+        //    }
+        //    else
+        //    {
+        //        return await _context.ListaPost.ToListAsync();
+        //    }
+        //}
 
         // GET: api/Posts/5
         [HttpGet("{id}")]
@@ -40,6 +66,21 @@ namespace csharp_blog_backend.Controllers
             {
                 return NotFound();
             }
+            //string fileName = "immagine-" + post.Id + "." + post.Image.Substring("FileLocal;".Length);
+            //string Image = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\Files");
+            ////string fileNameWithPath = Path.Combine(Image, fileName);
+            //if (!Directory.Exists(Image))
+            //    return NotFound();
+
+
+
+            //using (var stream = new FileStream(fileNameWithPath, FileMode.Open)
+            //using (var stream = System.IO.F FileMode.Open)
+            //{
+            //    post.File = new FormFile(stream, 0, stream.Length, null, Path.GetFileName(stream.Name));
+            //    //post.File.OpenReadStream();
+            //}
+
 
             return post;
         }
@@ -78,24 +119,48 @@ namespace csharp_blog_backend.Controllers
         // POST: api/Posts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Post>> PostPost(Post post)
+        public async Task<ActionResult<Post>> PostPost([FromForm] Post post)
         {
             if (_context.ListaPost == null)
             {
                 return Problem("Entity set 'BlogContext.ListaPost'  is null.");
             }
 
+            FileInfo fileInfo = new FileInfo(post.File.FileName);
+
             string Image = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot\\Files");
             if (!Directory.Exists(Image))
                 Directory.CreateDirectory(Image);
-            FileInfo fileInfo = new FileInfo(post.File.FileName);
-            string fileName = post.Title + fileInfo.Extension;
+            //FileInfo fileInfo = new FileInfo(post.File.FileName);
+            Guid g = Guid.NewGuid();
+
+            string fileName = g.ToString() + fileInfo.Extension;
             string fileNameWithPath = Path.Combine(Image, fileName);
             using (var stream = new FileStream(fileNameWithPath, FileMode.Create))
             {
                 post.File.CopyTo(stream);
             }
 
+
+            // post.Image = $"FileLocal;{fileInfo.Extension}";
+
+
+            post.Image = "https://localhost:500/Files/" + fileName;
+            //_context.ListaPost.Add(post);
+            //await _context.SaveChangesAsync();
+
+            // salviamo anche il file come  varBinaryMAx nel DB
+            //in questa parte c'è il salvataggio a db per un file blog
+
+            byte[] b;
+
+            //per leggerlo in html basta usare <img src="data:image/png;base64,iVBORw0KGgoAAAANSU ...">
+
+            using (BinaryReader br = new BinaryReader(post.File.OpenReadStream()))
+
+            {
+                post.ImageBytes = br.ReadBytes((int)post.File.OpenReadStream().Length);
+            }
             _context.ListaPost.Add(post);
             await _context.SaveChangesAsync();
 
