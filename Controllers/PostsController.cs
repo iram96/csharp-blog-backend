@@ -87,13 +87,24 @@ namespace csharp_blog_backend.Controllers
 
         // PUT: api/Posts/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutPost(int id, Post post)
+        [HttpPut]
+        public async Task<IActionResult> PutPost([FromForm] Post post)
         {
-            if (id != post.Id)
+
+
+            FileInfo fileInfo = new FileInfo(post.File.FileName);
+            Guid g = Guid.NewGuid();
+            string fileName = g.ToString() + fileInfo.Extension;
+            string Image = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/Files");
+            string fileNameWithPath = Path.Combine(Image, fileName);
+            post.Image = "https://localhost:5000/Files/" + fileName;
+            //Save to Filesystem
+            using (var stream = new FileStream(fileNameWithPath, FileMode.Create))
             {
-                return BadRequest();
+                post.File.CopyTo(stream);
             }
+
+
 
             _context.Entry(post).State = EntityState.Modified;
 
@@ -103,7 +114,7 @@ namespace csharp_blog_backend.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!PostExists(id))
+                if (!PostExists(post.Id))
                 {
                     return NotFound();
                 }
@@ -145,7 +156,7 @@ namespace csharp_blog_backend.Controllers
             // post.Image = $"FileLocal;{fileInfo.Extension}";
 
 
-            post.Image = "https://localhost:500/Files/" + fileName;
+            post.Image = "https://localhost:5000/Files/" + fileName;
             //_context.ListaPost.Add(post);
             //await _context.SaveChangesAsync();
 
@@ -190,6 +201,35 @@ namespace csharp_blog_backend.Controllers
         private bool PostExists(int id)
         {
             return (_context.ListaPost?.Any(e => e.Id == id)).GetValueOrDefault();
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePost(int id, Post post)
+        {
+            if (id != post.Id)
+            {
+                return BadRequest();
+            }
+
+            _context.Entry(post).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!PostExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
         }
     }
 }
